@@ -1,0 +1,49 @@
+name: Check SQL Assignment Week 6
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DB_DATABASE: salesDB
+      DB_USER: root
+      DB_PASSWORD: root
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Update and install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install mysql-server mysql-client -y
+
+      - name: Start MySQL
+        run: |
+          sudo /etc/init.d/mysql start
+          mysql -e "CREATE DATABASE IF NOT EXISTS $DB_DATABASE;" -u$DB_USER -p$DB_PASSWORD
+
+      - name: Execute SQL script 
+        run: |
+          if [ -f ./.github/workflows/demo.sql ]; then
+            sudo mysql -u$DB_USER -p$DB_PASSWORD $DB_DATABASE < ./.github/workflows/demo.sql
+          else
+            echo "demo.sql file is missing. Failing the workflow."
+            exit 1
+          fi
+
+      - name: Execute and Test SQL answers
+        run: |
+            # Check if the answers.sql file exists and is not empty
+            if [ -f ./answers.sql ] && [ -s ./answers.sql ]; then
+              sudo mysql -u$DB_USER -p$DB_PASSWORD $DB_DATABASE < ./answers.sql
+            else
+              echo "The answers.sql file is either missing or empty. Failing the workflow."
+              exit 1
+            fi
+  
+
+      - name: Mark test successful
+        run: echo "All tests passed successfully"
